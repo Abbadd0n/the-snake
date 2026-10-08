@@ -1,34 +1,26 @@
+"""Игра «Змейка»."""
+
 from random import choice, randint
 
 import pygame
 
-# Константы для размеров поля и сетки:
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
 GRID_SIZE = 20
 GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
 GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
 
-# Направления движения:
 UP = (0, -1)
 DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-# Цвет фона:
 BOARD_BACKGROUND_COLOR = (0, 0, 0)
-
-# Цвет яблока:
 APPLE_COLOR = (255, 0, 0)
-
-# Цвет змейки:
 SNAKE_COLOR = (0, 255, 0)
 
 pygame.init()
 
-screen = pygame.display.set_mode(
-    (SCREEN_WIDTH, SCREEN_HEIGHT)
-)
-
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
 
@@ -45,24 +37,33 @@ class GameObject:
 
     def draw(self, surface):
         """Отрисовка игрового объекта."""
-        pass
+        raise NotImplementedError
 
 
 class Apple(GameObject):
     """Класс яблока."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        occupied_positions=(),
+        body_color=APPLE_COLOR
+    ):
         """Создание яблока."""
         super().__init__()
-        self.body_color = APPLE_COLOR
-        self.randomize_position()
+        self.body_color = body_color
+        self.randomize_position(occupied_positions)
 
-    def randomize_position(self):
-        """Перемещает яблоко в случайную клетку."""
-        self.position = (
-            randint(0, GRID_WIDTH - 1) * GRID_SIZE,
-            randint(0, GRID_HEIGHT - 1) * GRID_SIZE
-        )
+    def randomize_position(self, occupied_positions):
+        """Перемещает яблоко в свободную клетку."""
+        while True:
+            position = (
+                randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+                randint(0, GRID_HEIGHT - 1) * GRID_SIZE
+            )
+
+            if position not in occupied_positions:
+                self.position = position
+                break
 
     def draw(self, surface):
         """Отрисовка яблока."""
@@ -129,17 +130,6 @@ class Snake(GameObject):
                 rect
             )
 
-        if self.last is not None:
-            last_rect = pygame.Rect(
-                self.last,
-                (GRID_SIZE, GRID_SIZE)
-            )
-            pygame.draw.rect(
-                surface,
-                BOARD_BACKGROUND_COLOR,
-                last_rect
-            )
-
     def reset(self):
         """Сбрасывает змейку."""
         self.length = 1
@@ -149,7 +139,7 @@ class Snake(GameObject):
         )
         self.positions = [self.position]
         self.direction = choice(
-            [UP, DOWN, LEFT, RIGHT]
+            (UP, DOWN, LEFT, RIGHT)
         )
         self.next_direction = None
         self.last = None
@@ -191,7 +181,7 @@ def main():
     pygame.display.set_caption('Змейка')
 
     snake = Snake()
-    apple = Apple()
+    apple = Apple(set(snake.positions))
 
     while True:
         clock.tick(10)
@@ -203,12 +193,15 @@ def main():
 
         if snake.get_head_position() == apple.position:
             snake.length += 1
-            apple.randomize_position()
+            apple.randomize_position(set(snake.positions))
 
         if snake.get_head_position() in snake.positions[1:]:
             snake.reset()
-            apple.randomize_position()
+            screen.fill(BOARD_BACKGROUND_COLOR)
+            apple.randomize_position(set(snake.positions))
             continue
+
+        screen.fill(BOARD_BACKGROUND_COLOR)
 
         snake.draw(screen)
         apple.draw(screen)
